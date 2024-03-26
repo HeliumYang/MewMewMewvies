@@ -37,6 +37,7 @@ app.get('/', (req, res) => {
  * address_state - String
  * address_zip - String
  * user_state - boolean (tinyint)
+ * promo - boolean (tinyint)
  */
 app.get('/register/', (req, res) => {
 	if (
@@ -46,17 +47,24 @@ app.get('/register/', (req, res) => {
 		req.query.hasOwnProperty('passwd') && req.query.passwd != "" &&
 		req.query.hasOwnProperty('phone') && req.query.phone != ""
 	) {
-		connection.query("INSERT INTO user (fname, lname, email, passwd, phone) VALUES (?, ?, ?, ?, ?)", [req.query.fname, req.query.lname, req.query.email, req.query.passwd, req.query.phone], function (error, results, fields) {
-			if (error) throw error;
-			console.log('New user registered: ' + JSON.stringify(results));
-			res.send(JSON.stringify(results));
+		connection.query("SELECT * FROM user WHERE email = ?", [req.query.email], function (error, results, fields) {
+			if (results.length == 0) {
+				connection.query("INSERT INTO user (fname, lname, email, passwd, phone) VALUES (?, ?, ?, ?, ?)", [req.query.fname, req.query.lname, req.query.email, req.query.passwd, req.query.phone], function (error, results, fields) {
+                                	if (error) throw error;
+                                	console.log('New user registered: ' + JSON.stringify(results));
+                                	res.send(JSON.stringify(results));
+                        	});
+					
+				if (req.query.hasOwnProperty('address_line_one')){}
+
+			} else {
+                		res.send('ERROR: Email already exists in the database.');
+        		} // if
 		});
-		//SELECT * from user where email = ?
-		//connection.end();
 	} else {
-	    	res.send('ERROR: Make sure all queries are fulfilled: fname, lname, email, passwd, phone')
-	    }
-  })
+                       	res.send('ERROR: Make sure all queries are fulfilled: fname, lname, email, passwd, phone')
+               	} // if
+  });
 
 app.get("/verifylogin/", (req, res) => {
         if (req.query.hasOwnProperty('email') && req.query.hasOwnProperty('passwd')) {
