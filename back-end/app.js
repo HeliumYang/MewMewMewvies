@@ -3,9 +3,9 @@ const app = express()
 const port = 2999
 
 app.use(function(req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
+  	res.header("Access-Control-Allow-Origin", "*");
   	//res.header("Access-Control-Allow-Methods", 'GET, POST, PUT, DELETE');
-	//res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+	res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   next();
 });
 
@@ -16,14 +16,6 @@ var connection = mysql.createConnection({
   password : 'kinda password',
   database : 'mewmewmewvies'
 });
-
-const crypto = require("crypto");
-
-const algo = 'aes-256-cbc';
-const unicode = 'utf-8';
-
-const iv = crypto.randomBytes(16);
-const cipher = crypto.randomBytes(32);
 
 app.get('/', (req, res) => {
     let sampleObj = {connection:"test ping successful", requestQuery:req.query};
@@ -62,15 +54,39 @@ app.get('/register/', (req, res) => {
                                 	console.log('New user registered: ' + JSON.stringify(results));
                                 	res.send(JSON.stringify(results));
                         	});
-					
-				if (req.query.hasOwnProperty('address_line_one')){}
+				
+				if (req.query.hasOwnProperty('address_line_one')) {
+				modifyUser('address_line_one', req.query.address_line_one, req.query.email);
+				}
 
+				if (req.query.hasOwnProperty('address_line_two')) {
+                                modifyUser('address_line_two', req.query.address_line_two, req.query.email);
+                                }
+
+				if (req.query.hasOwnProperty('address_city')) {
+                                modifyUser('address_city', req.query.address_line_city, req.query.email);
+                                }
+
+				if (req.query.hasOwnProperty('address_state')) {
+                                modifyUser('address_state', req.query.address_state, req.query.email);
+                                }
+
+				if (req.query.hasOwnProperty('address_zip')) {
+                                modifyUser('address_zip', req.query.address_zip, req.query.email);
+                                }
+
+				if (req.query.hasOwnProperty('address_promo')) {
+                                modifyUser('address_promo', req.query.address_promo, req.query.email);
+                                }
+				
 			} else {
+				console.log("Signup attempted, email already in use.");
                 		res.send('ERROR: Email already exists in the database.');
         		} // if
 		});
 	} else {
-                       	res.send('ERROR: Make sure all queries are fulfilled: fname, lname, email, passwd, phone')
+		console.log("Signup attempted, wrong parameters");
+                       	res.send('ERROR: Make sure all queries are fulfilled: fname, lname, email, passwd, phone\nOptional queries: address_line_one, address_line_two, address_city, address_state, address_zip, address_promo')
                	} // if
   });
 
@@ -78,7 +94,11 @@ app.get("/verifylogin/", (req, res) => {
         if (req.query.hasOwnProperty('email') && req.query.hasOwnProperty('passwd')) {
 		connection.query('SELECT * FROM user WHERE email = ? AND passwd = ?', [req.query.email, req.query.passwd], function (error, results, fields) {
 			if (error) throw error;
-			console.log("User logged in: " + JSON.stringify(results));
+			if (results.length == 0) {
+				console.log("Login attempt failed, wrong credentials");
+			} else {
+				console.log("User logged in: " + JSON.stringify(results));
+			} // if
 			res.send(JSON.stringify(results));
 		});		
 	} else {
@@ -127,6 +147,15 @@ connection.query('SELECT * FROM ??', ['user'], function (error, results, fields)
 //connection.end();
 } // initSQL
 
+function modifyUser(type, newEntry, email) {
+	connection.query("UPDATE user SET " + type + " = ? WHERE email = ?", [newEntry, email], function (error, results, fields) {
+                                        if (error) throw error;
+					console.log(type + " was modified for " + email + ":");
+                                        console.log(results);
+                                        });
+} //modifyUser
+
+
 function sendEmail(address, title, message) {
 var nodemailer = require('nodemailer');
 var transporter = nodemailer.createTransport({
@@ -153,22 +182,3 @@ transporter.sendMail(emailBody, function(error, info){
 });
 } // sendEmail
 
-// encrypt/decrypt
-
-function encrypt(encryptString) {
-    //Encryption
-    const encrypt = crypto.createCipheriv(algo, cipher, iv);
-    let encrypted = encrypt.update(string, unicode, "hex");
-    encrypted += encrypt.final("hex");
-    console.log(encrypted);
-    test = encrypted;
-    console.log(test);
-} // encrypt
-
-function decrypt(decryptString){
-//Decryption
-const decryption = crypto.createDecipheriv(algo, cipher, iv);
-let decrypted = decryption.update(decode_string, "hex", unicode);
-decrypted += decryption.final(unicode);
-console.log(decrypted); // Decrypted Final Product
-} // decrypt
